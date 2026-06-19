@@ -62,4 +62,9 @@ node --env-file=.env.local eval2.mjs    # writes eval-results.json
 
 It runs each prompt through every single model *and* the full council, then an independent judge
 blind-ranks them. In our run the council won only the broad design/synthesis question and lost the
-focused ones — so a council earns its cost on synthesis, not on every decision.
+focused ones — so a council earns its cost on synthesis, not on every decision. A sample run is
+committed as `eval-results.json` for reference.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
