@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LLM Council v2</title>
+<style>
+  :root{
+    --bg:#0a0a0a; --panel:#141414; --line:#2a2a2a; --ink:#ededed; --sub:#8a8a8a;
+    --cyan:#67e8f9; --green:#86efac; --yellow:#fde047; --magenta:#f472b6; --red:#f87171; --orange:#fb923c;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:14px;line-height:1.5}
+  header{padding:20px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+  h1{margin:0;font-size:20px;letter-spacing:.5px}
+  h1 .v{color:var(--cyan)}
+  .tag{color:var(--sub);font-size:12px;margin-top:4px}
+  .bar{display:flex;gap:10px;margin-top:14px}
+  #query{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    padding:11px 14px;border-radius:8px;font-family:var(--mono);font-size:14px}
+  #run{background:var(--cyan);color:#001016;border:none;padding:11px 22px;border-radius:8px;
+    font-weight:700;cursor:pointer;font-family:var(--mono)}
+  #run:disabled{opacity:.5;cursor:default}
+  .stages{display:flex;gap:8px;margin-top:14px}
+  .chip{font-size:12px;color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+  .chip.on{color:#001016;background:var(--cyan);border-color:var(--cyan);font-weight:700}
+  main{padding:24px 28px;max-width:1820px;margin:0 auto}
+  .section-h{font-size:13px;color:var(--sub);text-transform:uppercase;letter-spacing:1.5px;margin:26px 0 12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:14px}
+  .seat{background:var(--panel);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;min-height:150px;overflow:hidden}
+  .seat .hd{padding:10px 12px;border-bottom:1px solid var(--line)}
+  .seat .model{font-weight:700;font-size:13px}
+  .seat .role{color:var(--sub);font-size:11px;margin-top:2px}
+  .seat .body{padding:11px 12px;font-size:12.5px;color:#d4d4d4;overflow:auto;max-height:340px;flex:1}
+  .badge{float:right;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--sub)}
+  .badge.think{color:var(--yellow);border-color:var(--yellow)}
+  .badge.done{color:var(--green);border-color:var(--green)}
+  .badge.err{color:var(--red);border-color:var(--red)}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px}
+  .cols{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .lb-row{display:flex;align-items:center;gap:10px;margin:9px 0}
+  .lb-row .nm{width:235px;font-size:12.5px}
+  .lb-row .track{flex:1;background:#1f1f1f;border-radius:6px;height:20px;overflow:hidden}
+  .lb-row .fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:6px;transition:width .5s}
+  .lb-row .sc{width:54px;text-align:right;color:var(--orange);font-weight:700}
+  .lb-row.win .nm{color:var(--green);font-weight:700}
+  .rk{font-size:12.5px;margin:7px 0;color:#cfcfcf}
+  .rk b{color:var(--yellow)}
+  .chair .seg{margin:4px 0 14px}
+  .chair .lbl{font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+  .chair .consensus .lbl{color:var(--green)} .chair .dissent .lbl{color:var(--red)}
+  .chair .final .lbl{color:var(--cyan)} .chair .conf .lbl{color:var(--orange)}
+  .chair .rich{font-size:13px;color:#e4e4e4}
+  /* rendered-markdown styling (shared by answers + chairman) */
+  .rich>:first-child{margin-top:0} .rich>:last-child{margin-bottom:0}
+  .rich h2,.rich h3,.rich h4,.rich h5{margin:.7em 0 .35em;font-weight:700;color:#fff;line-height:1.3}
+  .rich h2{font-size:1.18em;color:var(--cyan)} .rich h3{font-size:1.07em} .rich h4{font-size:1em;color:var(--cyan)}
+  .rich p{margin:.5em 0} .rich ul,.rich ol{margin:.4em 0;padding-left:1.25em} .rich li{margin:.22em 0}
+  .rich strong{color:#fff;font-weight:700} .rich em{font-style:italic;color:#e8e8e8}
+  .rich code{background:#1f1f1f;padding:1px 5px;border-radius:4px;color:var(--green);font-size:.92em}
+  .rich pre{background:#171717;border:1px solid var(--line);border-radius:6px;padding:10px;overflow:auto;margin:.5em 0}
+  .rich pre code{background:none;padding:0;color:#d4d4d4}
+  .rich blockquote{border-left:3px solid var(--line);margin:.5em 0;padding-left:12px;color:var(--sub)}
+  .rich hr{border:none;border-top:1px solid var(--line);margin:.7em 0}
+  .muted{color:var(--sub)} .hidden{display:none}
+  .err-line{color:var(--red);font-size:13px;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>LLM Council <span class="v">v2</span></h1>
+  <div class="tag">6 models · different labs · one Vercel AI Gateway key · temp 0 · 8k tokens</div>
+  <div class="bar">
+    <input id="query" placeholder="Ask the council a question…" value="What caching strategy should a high-traffic API use, and what are the trade-offs?" />
+    <button id="run">Convene</button>
+  </div>
+  <div class="stages">
+    <span class="chip" data-s="1">1 · answers</span>
+    <span class="chip" data-s="2">2 · peer ranking</span>
+    <span class="chip" data-s="3">3 · chairman</span>
+    <span id="status" class="chip" style="margin-left:auto">idle</span>
+  </div>
+</header>
+
+<main>
+  <div class="section-h">Stage 1 — individual answers</div>
+  <div id="seats" class="grid"></div>
+
+  <div id="s2" class="hidden">
+    <div class="section-h">Stage 2 — anonymized peer ranking → Borda tally</div>
+    <div class="cols">
+      <div class="panel"><div class="muted" style="margin-bottom:8px">Leaderboard</div><div id="leaderboard"></div></div>
+      <div class="panel"><div class="muted" style="margin-bottom:8px">Each member's blind ranking</div><div id="rankings"></div></div>
+    </div>
+  </div>
+
+  <div id="s3" class="hidden">
+    <div class="section-h">Stage 3 — chairman synthesis</div>
+    <div class="panel chair" id="chair"><div class="muted">…</div></div>
+  </div>
+
+  <div id="err" class="err-line hidden"></div>
+</main>
+
+<script>
+const ACCENT = ['#67e8f9','#86efac','#f472b6','#fde047','#fb923c','#a78bfa'];
+const $ = (s)=>document.querySelector(s);
+const seatsEl=$('#seats'), statusEl=$('#status');
+let labelMap={};
+
+// ---- minimal, self-contained markdown -> HTML (no deps) ----
+function esc(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function inlineMd(s){
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g,'<code>$1</code>');
+  s = s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s = s.replace(/__([^_]+)__/g,'<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+  return s;
+}
+function mdToHtml(src){
+  const L=(src||'').replace(/\r/g,'').split('\n'); let out='',i=0;
+  const special=/^(#{1,6}\s|>\s?|\s*[-*+]\s+|\s*\d+\.\s+|```|\s*([-*_])(\s*\2){2,}\s*$)/;
+  while(i<L.length){
+    const ln=L[i];
+    if(/^```/.test(ln)){ let c='';i++; while(i<L.length&&!/^```/.test(L[i])){c+=L[i]+'\n';i++;} i++; out+=`<pre><code>${esc(c)}</code></pre>`; continue; }
+    const h=ln.match(/^(#{1,6})\s+(.*)$/);
+    if(h){ const lv=Math.min(6,h[1].length+1); out+=`<h${lv}>${inlineMd(h[2])}</h${lv}>`; i++; continue; }
+    if(/^\s*([-*_])(\s*\1){2,}\s*$/.test(ln)){ out+='<hr>'; i++; continue; }
+    if(/^>\s?/.test(ln)){ let q='';while(i<L.length&&/^>\s?/.test(L[i])){q+=L[i].replace(/^>\s?/,'')+'\n';i++;} out+=`<blockquote>${mdToHtml(q)}</blockquote>`; continue; }
+    if(/^\s*[-*+]\s+/.test(ln)){ let it='';while(i<L.length&&/^\s*[-*+]\s+/.test(L[i])){it+=`<li>${inlineMd(L[i].replace(/^\s*[-*+]\s+/,''))}</li>`;i++;} out+=`<ul>${it}</ul>`; continue; }
+    if(/^\s*\d+\.\s+/.test(ln)){ let it='';while(i<L.length&&/^\s*\d+\.\s+/.test(L[i])){it+=`<li>${inlineMd(L[i].replace(/^\s*\d+\.\s+/,''))}</li>`;i++;} out+=`<ol>${it}</ol>`; continue; }
+    if(/^\s*$/.test(ln)){ i++; continue; }
+    const p=[]; while(i<L.length&&!/^\s*$/.test(L[i])&&!special.test(L[i])){ p.push(L[i]); i++; }
+    out+=`<p>${p.map(inlineMd).join('<br>')}</p>`;
+  }
+  return out;
+}
+window.__md = mdToHtml; // exposed for quick rendering checks
+
+function setStage(n){ document.querySelectorAll('.chip[data-s]').forEach(c=>c.classList.toggle('on', +c.dataset.s===n)); }
+function status(t){ statusEl.textContent=t; }
+
+function reset(){
+  seatsEl.innerHTML=''; $('#s2').classList.add('hidden'); $('#s3').classList.add('hidden');
+  $('#leaderboard').innerHTML=''; $('#rankings').innerHTML=''; $('#chair').innerHTML='';
+  $('#err').classList.add('hidden'); labelMap={}; setStage(0);
+}
+
+function makeSeats(seats){
+  seats.forEach((s,i)=>{
+    const c=document.createElement('div'); c.className='seat'; c.id='seat'+i;
+    c.style.borderTop='3px solid '+ACCENT[i%6];
+    c.innerHTML=`<div class="hd"><span class="badge" id="b${i}">queued</span>
+      <div class="model">${s.model}</div><div class="role">${s.role}</div></div>
+      <div class="body rich" id="body${i}"></div>`;
+    seatsEl.appendChild(c);
+  });
+}
+function badge(i,cls,txt){ const b=$('#b'+i); b.className='badge '+cls; b.textContent=txt; }
+
+function renderLeaderboard(lb){
+  const max=Math.max(1,...lb.map(x=>x.score));
+  $('#leaderboard').innerHTML='';
+  lb.forEach((x,idx)=>{
+    const row=document.createElement('div'); row.className='lb-row'+(idx===0?' win':'');
+    row.innerHTML=`<div class="nm">${x.label} · ${x.model.split('/')[1]}</div>
+      <div class="track"><div class="fill" style="width:${(x.score/max*100)}%"></div></div>
+      <div class="sc">${x.score}</div>`;
+    $('#leaderboard').appendChild(row);
+  });
+}
+function addRanking(r){
+  const div=document.createElement('div'); div.className='rk';
+  const who=(labelMap[r.voter]||'').split('/')[1]||r.voter;
+  div.innerHTML=`<b>${r.voter}</b> (${who}) → ${r.order.join('  ▸  ')||'<span class="muted">—</span>'}`;
+  $('#rankings').appendChild(div);
+}
+function renderChair(text){
+  const pick=(a,b)=>{ const m=text.match(new RegExp(a+'\\s*:?\\s*([\\s\\S]*?)(?='+b+'\\s*:|$)','i')); return m?m[1].trim():''; };
+  const consensus=pick('CONSENSUS','DISSENT'), dissent=pick('DISSENT','FINAL'),
+        final=pick('FINAL','CONFIDENCE'), conf=pick('CONFIDENCE','$');
+  const seg=(cls,label,body)=>body?`<div class="seg ${cls}"><div class="lbl">${label}</div><div class="rich">${mdToHtml(body)}</div></div>`:'';
+  $('#chair').innerHTML = (consensus||dissent||final)
+    ? seg('consensus','Consensus',consensus)+seg('dissent','Dissent',dissent)+seg('final','Final answer',final)+seg('conf','Confidence',conf)
+    : `<div class="rich">${mdToHtml(text)}</div>`;
+}
+
+let es=null;
+function run(){
+  const q=$('#query').value.trim(); if(!q) return;
+  reset(); $('#run').disabled=true; status('convening…'); setStage(1);
+  if(es) es.close();
+  es=new EventSource('/run?q='+encodeURIComponent(q));
+  es.onmessage=(ev)=>{
+    const e=JSON.parse(ev.data);
+    switch(e.type){
+      case 'start': makeSeats(e.seats); break;
+      case 'stage': setStage(e.stage); if(e.stage===2)$('#s2').classList.remove('hidden'); if(e.stage===3)$('#s3').classList.remove('hidden'); break;
+      case 'seat_status': if(e.status==='thinking'){ badge(e.i,'think','thinking…'); status('stage 1 — thinking'); } break;
+      case 'answer': badge(e.i,'done',(e.ms/1000).toFixed(1)+'s'); $('#body'+e.i).innerHTML=mdToHtml(e.content); break;
+      case 'seat_error': badge(e.i,'err','error'); $('#body'+e.i).textContent='⚠ '+e.error; break;
+      case 'labels': labelMap=e.map; break;
+      case 'rank_status': status('stage 2 — ranking'); break;
+      case 'ranking': addRanking(e); break;
+      case 'leaderboard': renderLeaderboard(e.leaderboard); break;
+      case 'chair_status': status('stage 3 — '+e.model.split('/')[1]+' synthesizing'); $('#chair').innerHTML='<div class="muted">synthesizing…</div>'; break;
+      case 'synthesis': renderChair(e.content); break;
+      case 'done': status('done ✓'); $('#run').disabled=false; es.close(); break;
+      case 'fatal': $('#err').textContent='⚠ '+e.error; $('#err').classList.remove('hidden'); status('error'); $('#run').disabled=false; es.close(); break;
+    }
+  };
+  es.onerror=()=>{ status('connection closed'); $('#run').disabled=false; if(es)es.close(); };
+}
+$('#run').addEventListener('click',run);
+$('#query').addEventListener('keydown',(e)=>{ if(e.key==='Enter')run(); });
+</script>
+</body>
+</html>
